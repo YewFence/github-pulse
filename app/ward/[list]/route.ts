@@ -39,7 +39,7 @@ export async function GET(
     logins.some((l) => !USERNAME_RE.test(l))
   ) {
     return new NextResponse(
-      renderErrorCard(list.slice(0, 39), theme, options),
+      renderErrorCard(list.slice(0, 39), theme, options, "invalid"),
       { status: 400, headers: SVG_HEADERS },
     );
   }
@@ -72,9 +72,9 @@ export async function GET(
       });
     }
     console.error(`ward render failed for ${list}:`, err);
-    return new NextResponse(renderErrorCard(list.slice(0, 39), theme, options), {
-      status: 502,
-      headers: { ...SVG_HEADERS, "Cache-Control": "no-store" },
-    });
+    return new NextResponse(
+      renderErrorCard(list.slice(0, 39), theme, options, "offline"),
+      { status: 502, headers: { ...SVG_HEADERS, "Cache-Control": "no-store" } },
+    );
   }
 }

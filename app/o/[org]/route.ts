@@ -30,10 +30,10 @@ export async function GET(
   const options = parseOptions(search);
 
   if (!ORG_RE.test(org)) {
-    return new NextResponse(renderErrorCard(org.slice(0, 39), theme, options), {
-      status: 400,
-      headers: SVG_HEADERS,
-    });
+    return new NextResponse(
+      renderErrorCard(org.slice(0, 39), theme, options, "invalid"),
+      { status: 400, headers: SVG_HEADERS },
+    );
   }
 
   try {
@@ -51,9 +51,9 @@ export async function GET(
       });
     }
     console.error(`org pulse render failed for ${org}:`, err);
-    return new NextResponse(renderErrorCard(org, theme, options), {
-      status: 502,
-      headers: { ...SVG_HEADERS, "Cache-Control": "no-store" },
-    });
+    return new NextResponse(
+      renderErrorCard(org, theme, options, "offline"),
+      { status: 502, headers: { ...SVG_HEADERS, "Cache-Control": "no-store" } },
+    );
   }
 }

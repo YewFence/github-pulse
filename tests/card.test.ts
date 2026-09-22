@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { renderCard, renderDuetCard, renderWardCard } from "@/lib/card";
+import {
+  renderCard,
+  renderDuetCard,
+  renderErrorCard,
+  renderWardCard,
+} from "@/lib/card";
 import { parseOptions } from "@/lib/options";
 import { resolveTheme, THEMES } from "@/lib/themes";
 import type { Pulse } from "@/lib/pulse";
@@ -132,5 +137,24 @@ describe("resolveTheme", () => {
   it("random is stable per seed and day", () => {
     const q = new URLSearchParams("theme=random");
     expect(resolveTheme(q, "alice")).toEqual(resolveTheme(q, "alice"));
+  });
+});
+
+describe("renderErrorCard", () => {
+  const theme = THEMES.aura;
+  const card = (reason?: Parameters<typeof renderErrorCard>[3]) =>
+    renderErrorCard("ghost", theme, parseOptions(new URLSearchParams()), reason);
+
+  it("blames the username only when the username is the problem", () => {
+    expect(card()).toContain("patient not found: @ghost");
+    expect(card("invalid")).toContain("unreadable patient id: ghost");
+    expect(card("offline")).not.toContain("not found");
+  });
+  it("says the monitor is down when the upstream failed", () => {
+    const svg = card("offline");
+    expect(svg).toContain("signal lost");
+    expect(svg).toContain("@ghost · retrying on next load");
+    expect(svg).toContain(theme.muted);
+    expect(svg).not.toContain(theme.danger);
   });
 });

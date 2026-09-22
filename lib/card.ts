@@ -1325,23 +1325,49 @@ export function renderHolterCard(
   );
 }
 
+/**
+ * Why a card flatlined. The copy has to tell a typo apart from an outage —
+ * both used to read "patient not found", which sent people hunting for a
+ * username that was fine while the monitor was the thing that was down.
+ */
+export type ErrorReason = "not-found" | "invalid" | "offline";
+
 export function renderErrorCard(
   login: string,
   theme: Theme,
   options: CardOptions = DEFAULT_OPTIONS,
+  reason: ErrorReason = "not-found",
 ): string {
   const lay = LAYOUTS[options.size];
+  const offline = reason === "offline";
+  const line = offline
+    ? "signal lost — monitor offline"
+    : reason === "invalid"
+      ? `unreadable patient id: ${esc(login)}`
+      : `patient not found: @${esc(login)}`;
+  const aria = offline
+    ? `GitHub data for ${esc(login)} is temporarily unavailable`
+    : reason === "invalid"
+      ? `Invalid GitHub id ${esc(login)}`
+      : `GitHub user ${esc(login)} not found`;
   return applyWidth(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${lay.w}" height="${lay.h}"
-     viewBox="0 0 ${lay.w} ${lay.h}" role="img" aria-label="GitHub user ${esc(login)} not found">
+     viewBox="0 0 ${lay.w} ${lay.h}" role="img" aria-label="${aria}">
   <rect x="0.5" y="0.5" width="${lay.w - 1}" height="${lay.h - 1}"
         rx="${options.radius}" fill="${theme.bg}" stroke="${theme.border ?? theme.grid}"/>
   <path d="M${lay.waveX0} ${lay.baseline} H${lay.waveX1}" fill="none"
-        stroke="${theme.danger}" stroke-width="1.8" opacity="0.8"/>
+        stroke="${offline ? theme.muted : theme.danger}" stroke-width="1.8" opacity="0.8"${
+          offline ? ` stroke-dasharray="6 5"` : ""
+        }/>
   <text x="${lay.w / 2}" y="${lay.footerY - 22}" text-anchor="middle"
-        font-family="${MONO}" font-size="12" fill="${theme.muted}">patient not found: @${esc(
-          login,
-        )}</text>
+        font-family="${MONO}" font-size="12" fill="${theme.muted}">${line}</text>${
+          offline
+            ? `
+  <text x="${lay.w / 2}" y="${lay.footerY - 6}" text-anchor="middle"
+        font-family="${MONO}" font-size="9.5" opacity="0.7"
+        fill="${theme.muted}">@${esc(login)} · retrying on next load</text>`
+            : ""
+        }
 </svg>`,
     options.width,
   );

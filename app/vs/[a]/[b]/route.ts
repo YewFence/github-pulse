@@ -31,10 +31,10 @@ export async function GET(
   const options = parseOptions(search);
 
   if (!USERNAME_RE.test(a) || !USERNAME_RE.test(b)) {
-    return new NextResponse(renderErrorCard(slug.slice(0, 39), theme, options), {
-      status: 400,
-      headers: SVG_HEADERS,
-    });
+    return new NextResponse(
+      renderErrorCard(slug.slice(0, 39), theme, options, "invalid"),
+      { status: 400, headers: SVG_HEADERS },
+    );
   }
 
   try {
@@ -57,9 +57,9 @@ export async function GET(
       });
     }
     console.error(`duet render failed for ${slug}:`, err);
-    return new NextResponse(renderErrorCard(slug, theme, options), {
-      status: 502,
-      headers: { ...SVG_HEADERS, "Cache-Control": "no-store" },
-    });
+    return new NextResponse(
+      renderErrorCard(slug, theme, options, "offline"),
+      { status: 502, headers: { ...SVG_HEADERS, "Cache-Control": "no-store" } },
+    );
   }
 }
