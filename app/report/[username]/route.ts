@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { fetchGithubData, UserNotFoundError } from "@/lib/github";
 import { computePulse } from "@/lib/pulse";
 import { computeReport } from "@/lib/report";
 import { renderReportCard, renderErrorCard } from "@/lib/card";
+import { recordBeat } from "@/lib/beats";
 import { resolveTheme } from "@/lib/themes";
 import { cachedSvg } from "@/lib/http";
 import { parseOptions, parseNow, CACHE_SECONDS } from "@/lib/options";
@@ -31,14 +32,18 @@ export async function GET(
   }
 
   try {
+    const now = parseNow(search);
     const data = await fetchGithubData(username);
-    const pulse = computePulse(data, parseNow(search));
+    const pulse = computePulse(data, now);
     const card = renderReportCard(
       pulse,
       computeReport(data.days),
       theme,
       options,
-      parseNow(search).toISOString().slice(0, 10),
+      now.toISOString().slice(0, 10),
+    );
+    after(() =>
+      recordBeat("report", username, { wall: search.get("wall") === "1" }),
     );
     return cachedSvg(req, card, SVG_HEADERS);
   } catch (err) {

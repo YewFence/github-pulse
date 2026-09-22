@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { fetchHolterSample, UserNotFoundError } from "@/lib/github";
 import { computeHolter } from "@/lib/holter";
 import { renderHolterCard, renderErrorCard } from "@/lib/card";
+import { recordBeat } from "@/lib/beats";
 import { resolveTheme } from "@/lib/themes";
 import { cachedSvg } from "@/lib/http";
 import {
@@ -43,6 +44,9 @@ export async function GET(
       theme,
       options,
       parseNow(search).toISOString().slice(0, 10),
+    );
+    after(() =>
+      recordBeat("holter", username, { wall: search.get("wall") === "1" }),
     );
     return cachedSvg(req, card, SVG_HEADERS);
   } catch (err) {

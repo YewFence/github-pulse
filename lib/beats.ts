@@ -12,7 +12,17 @@ import { redis, redisConfigured } from "./redis";
  * Best-effort throughout — stats must never touch a render.
  */
 
-export type BeatKind = "u" | "r" | "o" | "vs" | "ward";
+export const BEAT_KINDS = [
+  "u",
+  "r",
+  "o",
+  "vs",
+  "ward",
+  "report",
+  "holter",
+] as const;
+
+export type BeatKind = (typeof BEAT_KINDS)[number];
 
 const KEY = "pulse:hearts";
 const WALL_KEY = "pulse:wall";
@@ -66,13 +76,8 @@ export async function recentBeats(limit: number): Promise<RecentBeat[]> {
       const i = m.indexOf(":");
       const kind = m.slice(0, i);
       const subject = m.slice(i + 1);
-      return (kind === "u" ||
-        kind === "r" ||
-        kind === "o" ||
-        kind === "vs" ||
-        kind === "ward") &&
-        subject
-        ? [{ kind, subject }]
+      return (BEAT_KINDS as readonly string[]).includes(kind) && subject
+        ? [{ kind: kind as BeatKind, subject }]
         : [];
     });
   } catch (err) {

@@ -9,15 +9,24 @@ export const metadata: Metadata = {
     "The most recently beating pulse cards, live. Embed yours and join the wall.",
 };
 
+/** Report and holter cards ignore ?size= — they render at their own fixed width. */
+const FIXED_SIZE: Partial<Record<RecentBeat["kind"], { width: number; height: number }>> = {
+  report: { width: 830, height: 330 },
+  holter: { width: 830, height: 310 },
+};
+
 function cardSrc(b: RecentBeat): string {
   if (b.kind === "ward") return `/ward/${b.subject}`;
+  if (b.kind in FIXED_SIZE) return `/${b.kind}/${b.subject}`;
   return b.kind === "vs"
     ? `/vs/${b.subject}?size=card`
     : `/${b.kind}/${b.subject}?size=compact`;
 }
 
 function pageHref(b: RecentBeat): string {
-  return b.kind === "u" ? `/s/${b.subject}` : cardSrc(b);
+  if (b.kind === "u") return `/s/${b.subject}`;
+  if (b.kind === "holter") return `/s/${b.subject}/holter`;
+  return cardSrc(b);
 }
 
 export default async function Wall() {
@@ -53,9 +62,10 @@ export default async function Wall() {
                 loading="lazy"
                 {...(b.kind === "ward"
                   ? {} // ward height varies with member count — let the SVG size itself
-                  : b.kind === "vs"
-                    ? { width: 520, height: 190 }
-                    : { width: 340, height: 130 })}
+                  : (FIXED_SIZE[b.kind] ??
+                    (b.kind === "vs"
+                      ? { width: 520, height: 190 }
+                      : { width: 340, height: 130 })))}
               />
             </a>
           ))}

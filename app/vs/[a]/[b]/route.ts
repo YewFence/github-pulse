@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { recordBeat } from "@/lib/beats";
 import { fetchGithubData, UserNotFoundError } from "@/lib/github";
-import { computePulse } from "@/lib/pulse";
+import { computePulse, forceState } from "@/lib/pulse";
 import { renderDuetCard, renderErrorCard } from "@/lib/card";
 import { resolveTheme } from "@/lib/themes";
 import { cachedSvg } from "@/lib/http";
@@ -9,6 +9,7 @@ import {
   parseOptions,
   parseDays,
   parseNow,
+  parseState,
   CACHE_SECONDS,
 } from "@/lib/options";
 
@@ -41,12 +42,12 @@ export async function GET(
     const days = parseDays(search);
     const [da, db] = await Promise.all([fetchGithubData(a), fetchGithubData(b)]);
     after(() => recordBeat("vs", `${a}/${b}`, { wall: search.get("wall") === "1" }));
-    const card = renderDuetCard(
-      computePulse(da, now, days),
-      computePulse(db, now, days),
-      theme,
-      options,
+    // ?state= previews a life state on both patients at once.
+    const preview = parseState(search);
+    const pulses = [computePulse(da, now, days), computePulse(db, now, days)].map(
+      (p) => (preview ? forceState(p, preview) : p),
     );
+    const card = renderDuetCard(pulses[0], pulses[1], theme, options);
     return cachedSvg(req, card, SVG_HEADERS);
   } catch (err) {
     if (err instanceof UserNotFoundError) {

@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { recordBeat } from "@/lib/beats";
 import { fetchGithubData, UserNotFoundError } from "@/lib/github";
-import { computePulse } from "@/lib/pulse";
+import { computePulse, forceState } from "@/lib/pulse";
 import { renderWardCard, renderErrorCard } from "@/lib/card";
 import { resolveTheme } from "@/lib/themes";
 import { cachedSvg } from "@/lib/http";
@@ -9,6 +9,7 @@ import {
   parseOptions,
   parseDays,
   parseNow,
+  parseState,
   CACHE_SECONDS,
 } from "@/lib/options";
 
@@ -29,9 +30,9 @@ export async function GET(
   const theme = resolveTheme(search, list);
   const options = parseOptions(search);
 
-  const logins = [
-    ...new Set(decodeURIComponent(list).split(",").map((s) => s.trim())),
-  ];
+  // `list` arrives already URL-decoded from Next; decoding again would throw
+  // URIError on any stray `%` a user types into the ward URL.
+  const logins = [...new Set(list.split(",").map((s) => s.trim()))];
   if (
     logins.length < 2 ||
     logins.length > MAX_PATIENTS ||
@@ -52,8 +53,13 @@ export async function GET(
         wall: search.get("wall") === "1",
       }),
     );
+    // ?state= previews a life state across every patient on the monitor.
+    const preview = parseState(search);
     const card = renderWardCard(
-      data.map((d) => computePulse(d, now, days)),
+      data.map((d) => {
+        const p = computePulse(d, now, days);
+        return preview ? forceState(p, preview) : p;
+      }),
       theme,
       options,
     );

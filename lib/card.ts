@@ -12,7 +12,8 @@ export type HideKey =
   | "status"
   | "header"
   | "pacemaker"
-  | "milestone";
+  | "milestone"
+  | "brand";
 export const HIDE_KEYS: HideKey[] = [
   "pill",
   "bpm",
@@ -21,6 +22,7 @@ export const HIDE_KEYS: HideKey[] = [
   "header",
   "pacemaker",
   "milestone",
+  "brand",
 ];
 
 /** Deadpan honors board: the highest badge these vitals have earned, if any. */
@@ -138,6 +140,33 @@ function esc(s: string): string {
 
 function round(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+/**
+ * The wordmark. Every embedded card is the only advertisement this project
+ * has, and nobody hovers an image to find the link — so each one says what it
+ * is, quietly, in the bottom gutter. `hide=brand` removes it. The badge size
+ * is exempt: 70px tall with no gutter to spare.
+ */
+function brandMark(
+  theme: Theme,
+  options: CardOptions,
+  {
+    x,
+    y,
+    anchor = "end",
+    size = 7.5,
+  }: { x: number; y: number; anchor?: "start" | "end"; size?: number },
+): string {
+  if (options.hide.has("brand")) return "";
+  return `<text x="${round(x)}" y="${round(y)}" text-anchor="${anchor}" font-family="${MONO}"
+        font-size="${size}" letter-spacing="0.8" fill="${theme.muted}"
+        opacity="0.6">github-pulse</text>`;
+}
+
+/** Bottom-right gutter of a fixed Layout — where the wordmark sits on EKG cards. */
+function gutter(lay: { w: number; h: number; waveX0: number }) {
+  return { x: lay.w - lay.waveX0, y: lay.h - 8 };
 }
 
 interface StateLook {
@@ -599,6 +628,7 @@ function renderMonitor(
         ${dotActive(pulse, options) ? 'class="gp-dot"' : ""}>${esc(
           right.text,
         )}</text>
+  ${brandMark(theme, options, gutter(lay))}
   ${scanlineOverlay(lay, options)}
   ${fontOverride(options)}
 </svg>`;
@@ -861,6 +891,7 @@ function renderCardAtSize(
   ${bpmCluster}
   ${statsText}
   ${statusText}
+  ${brandMark(theme, options, gutter(lay))}
   ${scanlineOverlay(lay, options)}
   ${fontOverride(options)}
 </svg>`;
@@ -935,6 +966,7 @@ export function renderDuetCard(
         stroke-width="1.6" stroke-linecap="round" opacity="0.85" ${glowFilter}/>
   ${legend(lay.waveX0, theme.trace, a)}
   ${legend(lay.waveX0 + Math.round(lay.w * 0.42), traceB, b)}
+  ${brandMark(theme, options, gutter(lay))}
   ${scanlineOverlay(lay, options)}
   ${fontOverride(options)}
 </svg>`,
@@ -1011,6 +1043,7 @@ export function renderWardCard(
         fill="${alive === sorted.length ? theme.trace : theme.warn}">${alive}/${sorted.length} ALIVE</text>`
   }
   ${rows}
+  ${brandMark(theme, options, gutter({ w, h, waveX0: base.waveX0 }))}
   ${scanlineOverlay(base, options)}
   ${fontOverride(options)}
 </svg>`,
@@ -1123,8 +1156,7 @@ export function renderReportCard(
   <text x="${x0}" y="${stripBase + 18}" font-family="${MONO}" font-size="8.5"
         letter-spacing="1.5" fill="${theme.muted}">EXAMINATION PERIOD · LAST ${stats.windowDays} DAYS</text>
   ${cellMarkup}
-  <text x="${x0}" y="${lay.footerY}" font-family="${MONO}" font-size="9.5"
-        fill="${theme.muted}">github-pulse</text>
+  ${brandMark(theme, options, { x: x0, y: lay.footerY, anchor: "start", size: 9.5 })}
   ${scanlineOverlay({ ...lay, h }, options)}
   ${fontOverride(options)}
 </svg>`,
@@ -1283,8 +1315,7 @@ export function renderHolterCard(
   ${bars}
   ${hourTicks}
   ${cellMarkup}
-  <text x="${x0}" y="${lay.footerY}" font-family="${MONO}" font-size="9.5"
-        fill="${theme.muted}">github-pulse</text>
+  ${brandMark(theme, options, { x: x0, y: lay.footerY, anchor: "start", size: 9.5 })}
   <text x="${x1}" y="${lay.footerY}" text-anchor="end" font-family="${MONO}"
         font-size="9.5" fill="${theme.muted}">${esc(tzHint)}</text>
   ${scanlineOverlay({ ...lay, h }, options)}
